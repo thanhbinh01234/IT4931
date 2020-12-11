@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  mongo:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - 27017:27017
+  sparkmaster:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    ports:
+      - 8080:8080
+      - 7077:7077
+    environment:
+      SPARK_MODE: master
+      PYSPARK_DRIVER_PYTHON: python3
+      PYSPARK_PYTHON: python3
+  sparkworker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    depends_on:
+      - sparkmaster
+    ports:
+      - 8081:8081
+    environment:
+      SPARK_MASTER_URL: spark://sparkmaster:7077
+      SPARK_MODE: worker
+      PYSPARK_DRIVER_PYTHON: python3
+      PYSPARK_PYTHON: python3
+  stream:
+    build:
+      context: .
+      dockerfile: src/Dockerfile.stream
+    ports:
+      - 5555:5555
+    volumes:
+      - .:/code
+  analysis:
+    build:
+      context: .
+      dockerfile: src/Dockerfile.analysis
+    environment:
+      SPARK_MASTER: spark://sparkmaster:7077
+      MONGO_URL: mongodb://admin:admin@mongo:27017
+      STREAM_HOST: stream
+      STREAM_PORT: 5555
+      PYSPARK_DRIVER_PYTHON: python3
+      PYSPARK_PYTHON: python3
+    volumes:
+      - .:/code
+    depends_on:
+      - sparkmaster
+      - mongo
+      - stream
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      MONGO_URL: mongodb://admin:admin@mongo:27017
+    volumes:
+      - .:/code
+    depends_on:
+      - mongo
+    ports:
+      - 5000:5000

@@ -8,6 +8,7 @@ from pyspark.mllib.regression import LabeledPoint
 from pyspark.mllib.feature import HashingTF
 from pyspark.mllib.feature import IDF
 
+import os
 import socket
 import time
 import datetime
@@ -15,7 +16,18 @@ import pickle
 from collections import namedtuple
 import json
 import pandas as pd
+import sys
 from pymongo import MongoClient
+
+
+print("Python path:", sys.executable)
+
+SPARK_MASTER = os.environ.get("SPARK_MASTER", "local[8]")
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+STREAM_HOST = os.environ.get("STREAM_HOST", "localhost")
+STREAM_PORT = int(os.environ.get("STREAM_PORT", 5555))
+
+print("Stream", STREAM_HOST, STREAM_PORT)
 
 
 def tweet_count(lines):
@@ -39,7 +51,7 @@ def related_keywords(lines):
     # Load the stop words into a list
     with open('data/stopwords.json', 'r') as f:
         stop_words = json.loads(f.read())
-   
+
     keywords = lines\
         .flatMap(lambda line: line.split()) \
         .map(lambda word: word if word not in stop_words else 'none')\
@@ -64,7 +76,6 @@ def sentiment_analysis(lines, hashingTF, iDF):
     pos_cnt_li = []
 
     model = pickle.load(open('src/model/model.ml', 'rb'))
-    
     analysis = lines.map(lambda line: line.split()) \
         .map(lambda x: hashingTF.transform(x)) \
         .transform(classify_tweet) \
@@ -134,7 +145,7 @@ def main(sc, db, tracking_word):
 
     hashingTF = HashingTF()
     iDF = IDF()
-    
+
 
     # Initialize sparksql context
     # Will be used to query the trends from the result.
@@ -146,7 +157,7 @@ def main(sc, db, tracking_word):
     # Receive the tweets
     host = socket.gethostbyname(socket.gethostname())
     # Create a DStream that represents streaming data from TCP source
-    socket_stream = ssc.socketTextStream(host, 5555)
+    socket_stream = ssc.socketTextStream(STREAM_HOST, STREAM_PORT)
     lines = socket_stream.window(window_time)
 
     # Construct tables
@@ -184,7 +195,7 @@ def main(sc, db, tracking_word):
         time.sleep(window_time)
         start_time.append(datetime.datetime.now())
         # Find the top related keywords
-        
+
         if len(sqlContext.tables().filter("tableName LIKE 'related_keywords_tmp'").collect()) == 1:
             top_words = sqlContext.sql('Select Keyword, Count from related_keywords_tmp')
             related_keywords_df = related_keywords_df.unionAll(top_words)
@@ -196,7 +207,7 @@ def main(sc, db, tracking_word):
         if len(sqlContext.tables().filter("tableName LIKE 'related_hashtags_tmp'").collect()) == 1:
             top_hashtags = sqlContext.sql('Select Hashtag, Count from related_hashtags_tmp')
             related_hashtags_df = related_hashtags_df.unionAll(top_hashtags)
-        
+
         process_cnt += 1
 
     # Final tables
@@ -250,16 +261,14 @@ def main(sc, db, tracking_word):
 
 if __name__ == "__main__":
     # Define Spark configuration
-    conf = SparkConf().setMaster("local[8]").setAppName("Twitter-Hashtag-Tracking")
+    conf = SparkConf().setMaster(SPARK_MASTER).setAppName("Twitter-Hashtag-Tracking")
     # Initialize a SparkContext
     sc = SparkContext(conf=conf)
     # Initialize sparksql context
     # Will be used to query the trends from the result.
     sqlContext = SQLContext(sc)
     # Initialize the tweet_cnt_li
-    
-    
-    
+
     # Load parameters
     with open('conf/parameters.json') as f:
         p = json.load(f)
@@ -270,7 +279,7 @@ if __name__ == "__main__":
     # Compute the whole time for displaying
     total_time = batch_interval * process_times
     # Connect to the running mongod instance
-    conn = MongoClient('localhost',27017)
+    conn = MongoClient(MONGO_URL)
     # connection = Connection('localhost',27017)
     # Switch to the database
     db = conn['twitter']

@@ -1,9 +1,0 @@
-conda active py34
-# Run the Twitter streamer
-python src/stream.py
-# Run the MongoDB server
-sudo service mongod start
-# Run the analysis
-/lib/spark/bin/spark-submit ./src/model.py > log/model.log  
-# Run the data visualization
-python web/dashboard.py

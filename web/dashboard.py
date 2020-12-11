@@ -1,4 +1,5 @@
-# Dashboard 
+# Dashboard
+import os
 from flask import Flask
 from flask import render_template
 from pymongo import MongoClient
@@ -6,8 +7,7 @@ import json
 from bson import json_util
 from bson.json_util import dumps
 
-MONGODB_HOST = 'localhost'
-MONGODB_PORT = 27017
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DBS_NAME = 'twitter'
 COLLECTION_NAME0 = 'keywords'
 COLLECTION_NAME1 = 'hashtags'
@@ -33,7 +33,7 @@ def index():
 
 @app.route("/data/keywords")
 def keywords():
-	connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+	connection = MongoClient(MONGO_URL)
 	collection = connection[DBS_NAME][COLLECTION_NAME0]
 	projects = collection.find(projection=FIELDS0)
 	json_projects = []

@@ -50,7 +50,7 @@ def main(sc):
 	idx_tfidf = tfidf_idx.map(lambda l: (l[1], l[0]))
 	#print(idx_training.take(10))
 
-	# rdd.join: (K,V).join(K,W) -> (K, (V,W)) 
+	# rdd.join: (K,V).join(K,W) -> (K, (V,W))
 	# idx_tfidf has no info about lables(0/1)
 	# but idx_training has
 	joined_tfidf_training = idx_training.join(idx_tfidf)
@@ -86,7 +86,7 @@ def main(sc):
 	print(accuracy)
 
 	#model.save(sc, '/model')
-	output = open('src/model/model.ml', 'wb')
+	output = open('./model/model.ml', 'wb')
 	pickle.dump(model,output)
 
 

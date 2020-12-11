@@ -27,7 +27,7 @@ def send_data(c_socket, keyword):
 
 	twitter_stream = Stream(auth, listener(c_socket))
 	twitter_stream.filter(track=[keyword], languages=['en'])
-	
+
 
 if __name__ == '__main__':
 	# Get the Twitter API keys
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	#s.settimeout(5)
-	
+
 	# Get local machine name
 	host = socket.gethostbyname(socket.gethostname())
 	#host = '192.168.200.146'
