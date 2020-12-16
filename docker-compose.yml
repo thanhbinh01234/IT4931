@@ -54,6 +54,7 @@ services:
       PYSPARK_PYTHON: python3
     volumes:
       - .:/code
+      - ./output:/data
     depends_on:
       - sparkmaster
       - mongo
@@ -65,6 +66,7 @@ services:
       MONGO_URL: mongodb://admin:admin@mongo:27017
     volumes:
       - .:/code
+      - ./output:/data
     depends_on:
       - mongo
     ports:
