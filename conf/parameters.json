@@ -1,8 +1,8 @@
 {
-  "keyword": "TREASURE",
-  "DStream": {
-    "batch_interval": "60",
-    "window_time": "60",
-    "process_times": "60"
-  }
+    "keyword": "Biden",
+    "DStream": {
+        "batch_interval": "5",
+        "window_time": "5",
+        "process_times": "60"
+    }
 }

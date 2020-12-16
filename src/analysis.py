@@ -17,6 +17,7 @@ from collections import namedtuple
 import json
 import pandas as pd
 import sys
+import pytz
 from pymongo import MongoClient
 
 
@@ -188,12 +189,12 @@ def main(sc, db, tracking_word):
     ssc.start()
 
     process_cnt = 0
-    start_time = [datetime.datetime.now()]
+    start_time = [datetime.datetime.now(tz=pytz.timezone('Asia/Ho_Chi_Minh'))]
     # print("Here!!!", process_times, process_cnt)
 
     while process_cnt < process_times:
         time.sleep(window_time)
-        start_time.append(datetime.datetime.now())
+        start_time.append(datetime.datetime.now(tz=pytz.timezone('Asia/Ho_Chi_Minh')))
         # Find the top related keywords
 
         if len(sqlContext.tables().filter("tableName LIKE 'related_keywords_tmp'").collect()) == 1:
