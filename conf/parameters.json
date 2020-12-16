@@ -1,8 +1,8 @@
 {
-    "keyword": "Biden",
+    "keyword": "Christmas",
     "DStream": {
         "batch_interval": "5",
         "window_time": "5",
-        "process_times": "60"
+        "process_times": "30"
     }
 }
