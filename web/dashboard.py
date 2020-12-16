@@ -45,7 +45,7 @@ def keywords():
 
 @app.route("/data/hashtags")
 def hashtags():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME1]
         projects = collection.find(projection=FIELDS1)
         json_projects = []
@@ -57,7 +57,7 @@ def hashtags():
 
 @app.route("/data/counts")
 def counts():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME2]
         projects = collection.find(projection=FIELDS2)
         json_projects = []
@@ -69,7 +69,7 @@ def counts():
 
 @app.route("/data/ratio")
 def ratio():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME3]
         projects = collection.find(projection=FIELDS3)
         json_projects = []
@@ -82,7 +82,7 @@ def ratio():
 
 @app.route("/data/tracking_word")
 def tracking_word():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME4]
         projects = collection.find(projection=FIELDS4)
         json_projects = []
@@ -94,7 +94,7 @@ def tracking_word():
 
 @app.route("/data/users")
 def users():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME5]
         projects = collection.find(projection=FIELDS5)
         json_projects = []
@@ -106,7 +106,7 @@ def users():
 
 @app.route("/data/time")
 def time():
-        connection = MongoClient(MONGODB_HOST, MONGODB_PORT)
+        connection = MongoClient(MONGO_URL)
         collection = connection[DBS_NAME][COLLECTION_NAME6]
         projects = collection.find(projection=FIELDS6)
         json_projects = []
