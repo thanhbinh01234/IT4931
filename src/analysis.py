@@ -17,29 +17,36 @@ import pandas as pd
 import sys
 import pytz
 from pymongo import MongoClient
+import requests
 
 
 print("Python path:", sys.executable)
 
 SPARK_MASTER = os.environ.get("SPARK_MASTER", "local[8]")
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 STREAM_HOST = os.environ.get("STREAM_HOST", "localhost")
 STREAM_PORT = int(os.environ.get("STREAM_PORT", 5555))
 
+SERVER_URL = os.environ.get("SERVER_URL", "localhost:5000")
+
 TIMEZONE = pytz.timezone('Asia/Ho_Chi_Minh')
-
-conn = MongoClient(MONGO_URL)
-# connection = Connection('localhost',27017)
-# Switch to the database
-db = conn['twitter']
-db['counts'].drop()
-db['ratio'].drop()
-db['tracking_word'].drop()
-
 
 def write_to_file(fname, content):
     with open(fname, 'a') as f:
         f.write(content + '\n')
+
+
+def handle_tweets(counts):
+    with open('/data/count.txt', 'a') as f:
+        f.write('\n'.join(map(str, counts)) + '\n')
+
+    print("> New tweet count: ", counts)
+
+    requests.post(
+        f'{SERVER_URL}/data/counts',
+        json={
+            'data': [{'Time': datetime.datetime.now(tz=TIMEZONE).isoformat(), 'Count': count} for count in counts]
+        }
+    )
 
 
 def tweet_count(lines):
@@ -47,12 +54,24 @@ def tweet_count(lines):
         lines.flatMap(lambda line: line.split('---'))
             .map(lambda line: 1)
             .reduce(lambda x, y: x + y)
-            .foreachRDD(lambda x: write_to_file('/data/count.txt', '\n'.join(map(str, x.collect()))))
+            .foreachRDD(lambda x: handle_tweets(x.collect()))
     )
 
 
 def classify_tweet(tf):
     return IDF().fit(tf).transform(tf)
+
+
+def handle_sentiments(positives):
+    with open('/data/ratio.txt', 'a') as f:
+        f.write('\n'.join(map(str, positives)) + '\n')
+
+    print("> Number of positive posts: ", positives)
+
+    requests.post(
+        f'{SERVER_URL}/data/ratio',
+        json={'positive': list(positives)}
+    )
 
 
 def sentiment_analysis(lines, hashingTF, iDF):
@@ -63,42 +82,14 @@ def sentiment_analysis(lines, hashingTF, iDF):
         .map(lambda x: LabeledPoint(1, x)) \
         .map(lambda x: model.predict(x.features)) \
         .reduce(lambda x, y: x + y)\
-            .foreachRDD(lambda x: write_to_file('/data/ratio.txt', '\n'.join(map(str, x.collect()))))
+            .foreachRDD(lambda x: handle_sentiments(x.collect()))
 
-def data_to_db(db, start_time, counts, pos, tracking_word):
-    # 1) Store counts
-    # Complement the counts list
-    # if len(counts) < len(start_time):model = pickle.load(open('src/model/model.ml', 'rb'))
-    #	counts.extend([0]*(len(start_time)-len(counts)))
-    counts_t = []
-    for i in range(min(len(counts), len(start_time))):
-        print(str(start_time[i]))
-        time = str(start_time[i]).split(" ")[1]
-        time = time.split(".")[0]
-        counts_t.append((time, counts[i]))
-    counts_df = pd.DataFrame(counts_t, columns=['Time', 'Count'])
-    counts_js = json.loads(counts_df.reset_index().to_json(orient='records'))
-    db['counts'].insert(counts_js)
-    # 3) Store ratio
-    whole = sum(counts[:len(pos)])
-    pos_whole = sum(pos)
-    # Prevent divide 0:
-    if whole:
-        pos = 1.0 * pos_whole / whole
-    else:
-        pos = 1
-    neg = 1 - pos
-    ratio_df = pd.DataFrame([(pos, 'P'), (neg, 'N')], columns=['Ratio', 'PN'])
-    ratio_js = json.loads(ratio_df.reset_index().to_json(orient='records'))
-    db['ratio'].insert(ratio_js)
-    # 7) Store tracking_word
-    tracking_word_df = pd.DataFrame([tracking_word], columns=['Tracking_word'])
-    tracking_word_js = json.loads(tracking_word_df.reset_index().to_json(orient='records'))
-    db['tracking_word'].insert(tracking_word_js)
-
-
-def main(sc, db, tracking_word):
+def main(sc, tracking_word):
     print('>' * 30 + 'SPARK START' + '>' * 30)
+
+    requests.post(f"{SERVER_URL}/data/tracking_word", json={
+        "tracking_word": tracking_word
+    })
 
     hashingTF = HashingTF()
     iDF = IDF()
@@ -133,10 +124,6 @@ def main(sc, db, tracking_word):
     ssc.stop()
     ###########################################################################
 
-    # Store the data to MongoDB
-    # data_to_db(db, start_time, tweet_cnt_li, pos_cnt_li,
-    #         tracking_word)
-
     print('>' * 30 + 'SPARK STOP' + '>' * 30)
 
 
@@ -159,6 +146,4 @@ if __name__ == "__main__":
         window_time = int(p['DStream']['window_time'])
         process_times = int(p['DStream']['process_times'])
 
-    db['tracking_word'].insert({'tracking': tracking_word})
-
-    main(sc, db, tracking_word)
+    main(sc, tracking_word)

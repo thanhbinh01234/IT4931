@@ -11,9 +11,7 @@ var track = d3
 var tr = ''
 // load the data
 d3.json('data/tracking_word', function (error, data) {
-    data.forEach(function (d) {
-        tr = d.Tracking_word
-    })
+    tr = data.tracking_word
 
     track.append('text').text(tr).style('font-size', '30px')
 })
